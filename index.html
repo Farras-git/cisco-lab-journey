@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cisco CCNA Engineering Documentation</title>
+  <title>CCNA Lab Documentation</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts: Inter & JetBrains Mono -->
@@ -44,7 +44,7 @@
           <span class="w-2.5 h-2.5 bg-blue-600 dark:bg-blue-500 rounded-sm"></span>
           CCNA Lab Manual
         </h1>
-        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Engineering Notebook & Portfolio</p>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Notebook & Portfolio by LunarX</p>
       </div>
       <!-- Tombol Tutup Sidebar di Mobile/Desktop -->
       <button onclick="toggleSidebar()" class="p-1 text-slate-500 hover:text-slate-900 dark:hover:text-white lg:hidden">
@@ -107,139 +107,11 @@
   <script>
     // DATA STORE LENGKAP
     const LAB_DATABASE = [
-      {
-        id: "srwe-1-1-7",
-        course: "SRWE",
-        code: "1.1.7",
-        title: "Basic Switch Configuration",
-        badge: "Switching",
-        background: `Cisco Switch yang baru dikeluarkan dari box belum memiliki alamat IP atau mekanisme pengamanan apapun. Secara default, seluruh antarmuka switch berada pada <strong>VLAN 1</strong>. Jika antarmuka logis <em>Switch Virtual Interface</em> (SVI) VLAN 1 diberi IP, maka secara otomatis semua port switch dapat mengakses IP tersebut. Kondisi default ini sangat rawan terhadap eksploitasi keamanan dan serangan broadcast. Oleh karena itu, kita memindahkan manajemen antarmuka ke VLAN khusus (misalnya <strong>VLAN 99</strong>), mengamankan port konsol dan remote VTY, mengenkripsi password internal, serta menetapkan default gateway agar switch dapat dikelola dari jaringan berbeda (remote access).`,
-        objectives: [
-          "Melakukan instalasi perkabelan jaringan dan verifikasi konfigurasi bawaan pabrik switch (default configuration).",
-          "Mengonfigurasi parameter dasar perangkat jaringan (Hostname, Banner MOTD, Enkripsi Password, SVI Management VLAN 99, Default Gateway).",
-          "Mengonfigurasi pengamanan akses lokal (Console) dan akses jarak jauh (Line VTY Telnet).",
-          "Melakukan verifikasi konektivitas end-to-end (Ping IPv4/IPv6) dan pengujian sesi remote terminal."
-        ],
-        topologyImg: "./images/topo-1.png",
-        addressingTable: [
-          { device: "S1", iface: "VLAN 99", ipv4: "192.168.1.2 /24", ipv6: "2001:db8:acad:1::2/64<br><span class='text-[10px] text-slate-400'>fe80::2 (link-local)</span>", gateway: "192.168.1.1" },
-          { device: "PC-A", iface: "NIC", ipv4: "192.168.1.10 /24", ipv6: "2001:db8:acad:1::10/64", gateway: "192.168.1.1<br><span class='text-[10px] text-slate-400'>fe80::1</span>" }
-        ],
-        steps: [
-          {
-            part: "Part 1: Kabel Jaringan & Verifikasi Konfigurasi Bawaan Switch",
-            desc: "Pemeriksaan konfigurasi pabrik sebelum switch diprogram.",
-            cli: [
-              {
-                label: "Pemeriksaan Status Awal di Switch",
-                code: `Switch> enable
-Switch# show running-config
-Switch# show startup-config
-! (Pesan 'startup-config is not present' normal karena konfigurasi belum pernah disimpan ke NVRAM)
-Switch# show version
-Switch# show interface vlan 1
-Switch# show ip interface vlan 1
-Switch# show flash:`
-              }
-            ]
-          },
-          {
-            part: "Part 2: Konfigurasi Parameter Dasar & Pengamanan S1",
-            desc: "Pemberian nama perangkat, banner larangan, isolasi VLAN 99, default gateway, dan password.",
-            cli: [
-              {
-                label: "Hostname, Enkripsi Password & Banner MOTD",
-                code: `Switch# configure terminal
-Switch(config)# hostname S1
-Switch(config)# no ip domain-lookup
-Switch(config)# service password-encryption
-Switch(config)# enable secret class
-Switch(config)# banner motd #Akses tidak sah dilarang keras! Hak Cipta Administrasi Jaringan.#`
-              },
-              {
-                label: "Konfigurasi SVI Management VLAN 99 & Assign Port PC-A",
-                code: `S1(config)# vlan 99
-S1(config-vlan)# name Management
-S1(config-vlan)# exit
-
-S1(config)# interface vlan 99
-S1(config-if)# ip address 192.168.1.2 255.255.255.0
-S1(config-if)# ipv6 address fe80::2 link-local
-S1(config-if)# ipv6 address 2001:db8:acad:1::2/64
-S1(config-if)# no shutdown
-S1(config-if)# exit
-
-! Masukkan port koneksi PC-A (G1/0/6 atau F0/6) ke VLAN 99 agar SVI aktif (up/up)
-S1(config)# interface gigabitethernet 1/0/6
-S1(config-if)# switchport mode access
-S1(config-if)# switchport access vlan 99
-S1(config-if)# exit
-
-! Tetapkan IP default gateway untuk switch
-S1(config)# ip default-gateway 192.168.1.1`
-              },
-              {
-                label: "Amankan Jalur Console dan Jalur Akses Remote (Line VTY)",
-                code: `S1(config)# line console 0
-S1(config-line)# password cisco
-S1(config-line)# logging synchronous
-S1(config-line)# login
-S1(config-line)# exit
-
-S1(config)# line vty 0 15
-S1(config-line)# password cisco
-S1(config-line)# login
-S1(config-line)# exit
-
-S1(config)# end
-S1# copy running-config startup-config`
-              }
-            ]
-          },
-          {
-            part: "Part 3: Uji Konektivitas & Pengujian Remote Access",
-            desc: "Uji coba ping dari PC-A dan akses terminal switch melalui jaringan (Telnet).",
-            cli: [
-              {
-                label: "Jalankan dari Command Prompt PC-A",
-                code: `C:\\> ping 192.168.1.2
-C:\\> ping 2001:db8:acad:1::2
-
-! Masuk via remote Telnet
-C:\\> telnet 192.168.1.2
-Password: cisco
-S1> enable
-Password: class
-S1# show ip interface brief`
-              }
-            ]
-          }
-        ],
-        reflections: [
-          {
-            q: "Mengapa pada saat pertama kali konfigurasi switch wajib menggunakan sambungan kabel Console?",
-            a: "Karena switch dalam kondisi default/baru belum memiliki alamat IP dan port Line VTY belum dikonfigurasi kata sandi. Switch tidak memiliki konektivitas jaringan apapun sehingga metode in-band (Telnet/SSH) belum dapat diakses; satu-satunya pintu gerbang komunikasi awal adalah melalui sambungan fisik out-of-band (port Console)."
-          },
-          {
-            q: "Mengapa perintah 'login' wajib dimasukkan pada konfigurasi Line VTY?",
-            a: "Perintah 'login' menginstruksikan sistem Cisco IOS untuk memvalidasi kata sandi sebelum mengizinkan sesi terminal masuk. Jika Anda memberi password tetapi tidak mengetikkan perintah 'login', IOS menganggap mekanisme autentikasi belum tuntas dan akan langsung memutus koneksi Telnet secara otomatis demi mencegah celah keamanan."
-          },
-          {
-            q: "Mengapa kita memindahkan VLAN manajemen bawaan (VLAN 1) ke VLAN lain seperti VLAN 99?",
-            a: "Ini merupakan aturan dasar keamanan (security best practice). VLAN 1 adalah default untuk seluruh lalu lintas data dan kontrol perangkat Cisco. Menggabungkan lalu lintas manajemen switch bersama traffic pengguna biasa di VLAN 1 sangat rentan terhadap serangan VLAN Hopping, eksploitasi broadcast storm, dan packet sniffing."
-          },
-          {
-            q: "Bagaimana cara mencegah agar kata sandi dan perintah tidak terkirim dalam format teks polos (plaintext) saat remote access?",
-            a: "Gantikan protokol Telnet dengan SSH (Secure Shell). SSH menggunakan algoritma enkripsi asimetris (RSA/ECDSA) untuk mengenkripsi seluruh muatan data dan kredensial autentikasi selama transmisi jaringan."
-          }
-        ],
-        youtubeId: ""
-      },
       // Modul dummy tambahan untuk ITN & ENSA
       {
         id: "itn-basic-ip",
         course: "ITN",
-        code: "2.9.1",
+        code: "0.0.0",
         title: "Basic Switch & End Device Config",
         badge: "Foundations",
         background: "Materi pondasi mengenai struktur hirarki Cisco IOS dan pengalamatan IP kelas C.",
@@ -251,9 +123,214 @@ S1# show ip interface brief`
         youtubeId: ""
       },
       {
+        // 1.1.7 basic switch configuration
+        id: "srwe-basic-switch",
+        course: "SRWE",
+        code: "1.1",
+        title: "Basic Switch Configuration & MAC Address Table",
+        badge: "Switching",
+        background: `Switch Layer 2 dalam kondisi bawaan pabrik menempatkan seluruh port pada <strong>VLAN 1</strong> tanpa proteksi otentikasi. Pada skenario mandiri ini, switch dirancang dari lembar kerja kosong menggunakan isolasi <strong>VLAN 20</strong> khusus untuk manajemen jaringan guna mencegah risiko eksploitasi seperti VLAN Hopping dan broadcast storm. Praktikum ini mencakup audit konfigurasi default, aktivasi dual-stack SDM template, penerapan pengamanan lokal (Console) dan remote (VTY Telnet), pengalamatan SVI dual-stack (IPv4 & IPv6), pengujian konektivitas, hingga manajemen MAC Address Table (dinamis dan statis).`,
+        objectives: [
+          "Membangun topologi mandiri 1 Switch (Catalyst 2960) dan 1 PC (Admin) dari lembar kerja kosong Packet Tracer.",
+          "Memverifikasi template Switch Database Manager (SDM) untuk kesiapan dukungan dual-stack IPv4/IPv6.",
+          "Melakukan audit konfigurasi bawaan pabrik (running-config, startup-config, flash, dan status SVI default).",
+          "Mengonfigurasi parameter dasar perangkat: Hostname, Banner MOTD, Enkripsi Password, dan Default Gateway.",
+          "Mengisolasi Switch Virtual Interface (SVI) pada VLAN 20 serta mengalokasikan port akses.",
+          "Mengamankan akses port fisik Line Console 0 dan jalur remote terminal Line VTY 0-15.",
+          "Memverifikasi konektivitas dual-stack serta mengelola entri dinamis dan statis pada MAC Address Table."
+        ],
+        topologyImg: "./images/topo-1.png",
+        // POIN 2: DESAIN SKEMA PENGALAMATAN (ADDRESSING TABLE) BARU
+        addressingTable: [
+          { device: "SW-ACCESS-01", iface: "VLAN 20", ipv4: "192.168.20.2 /24", ipv6: "2001:db8:acad:20::2/64<br><span class='text-[10px] text-slate-400'>fe80::2 (link-local)</span>", gateway: "192.168.20.1" },
+          { device: "ADMIN-PC", iface: "FastEthernet0", ipv4: "192.168.20.10 /24", ipv6: "2001:db8:acad:20::10/64<br><span class='text-[10px] text-slate-400'>fe80::10 (link-local)</span>", gateway: "192.168.20.1" }
+        ],
+        steps: [
+          {
+            // POIN 1 & 3: DAFTAR PERANGKAT, MODUL, & LANGKAH PERAKITAN FISIK
+            part: "Part 1: Daftar Perangkat & Panduan Perakitan Topologi (Packet Tracer)",
+            desc: "Panduan pemilihan perangkat keras, penamaan modul, dan penyambungan kabel port-ke-port dari lembar kosong.",
+            cli: [
+              {
+                label: "Hardware Inventory & Wiring Guide",
+                code: `! ==================================================================================
+! 1. DAFTAR PERANGKAT & MODUL (BLANK SHEET):
+!    - 1x Switch : Cisco Catalyst 2960-24TT (Ubah nama display menjadi: SW-ACCESS-01)
+!    - 1x Host   : PC Standar / PC-PT (Ubah nama display menjadi: ADMIN-PC)
+!
+! 2. LANGKAH PERAKITAN FISIK KABEL (PORT-TO-PORT):
+!    a. Kabel Console (Biru Muda):
+!       - Hubungkan dari port RS-232 pada ADMIN-PC ke port Console pada SW-ACCESS-01.
+!    b. Kabel Copper Straight-Through (Hitam Garis Lurus):
+!       - Hubungkan dari port FastEthernet0 pada ADMIN-PC ke port FastEthernet0/6 pada SW-ACCESS-01.
+! ==================================================================================`
+              }
+            ]
+          },
+          {
+            // POIN 4: KONFIGURASI CLI & VERIFIKASI LANGKAH DEMI LANGKAH
+            part: "Part 2: Audit Konfigurasi Bawaan Pabrik & Template SDM",
+            desc: "Inspeksi parameter awal switch, status NVRAM, dan penyesuaian template SDM untuk mendukung IPv6.",
+            cli: [
+              {
+                label: "Audit Awal & Konfigurasi SDM Dual-Stack",
+                code: `Switch> enable
+Switch# show running-config
+Switch# show startup-config
+! (Pesan 'startup-config is not present' normal karena konfigurasi belum disimpan ke NVRAM)
+Switch# show version
+Switch# show vlan brief
+Switch# show flash:
+
+! Periksa apakah Switch Database Manager (SDM) telah mendukung dual-stack IPv4 & IPv6:
+Switch# show sdm prefer
+! Jika template belum dual-stack, aktifkan perintah berikut lalu simpan dan reload:
+! Switch(config)# sdm prefer dual-ipv4-and-ipv6 default
+! Switch# reload`
+              }
+            ]
+          },
+          {
+            part: "Part 3: Konfigurasi Parameter Dasar & Pengamanan Global",
+            desc: "Penamaan hostname, pencegahan DNS resolution typo, enkripsi password lokal, dan banner MOTD.",
+            cli: [
+              {
+                label: "Konfigurasi Global & Kredensial Privileged",
+                code: `Switch# configure terminal
+Switch(config)# hostname SW-ACCESS-01
+SW-ACCESS-01(config)# no ip domain-lookup
+SW-ACCESS-01(config)# service password-encryption
+SW-ACCESS-01(config)# enable secret class
+SW-ACCESS-01(config)# banner motd #PERINGATAN: Akses tidak sah dilarang keras! Sesi diawasi administrator.#`
+              }
+            ]
+          },
+          {
+            part: "Part 4: Konfigurasi SVI Manajemen (VLAN 20) & Default Gateway",
+            desc: "Isolasi manajemen antarmuka ke VLAN 20, alokasi port pengguna, dan penentuan Default Gateway.",
+            cli: [
+              {
+                label: "Konfigurasi Interface VLAN 20 & Access Port",
+                code: `SW-ACCESS-01(config)# vlan 20
+SW-ACCESS-01(config-vlan)# name Management_Net
+SW-ACCESS-01(config-vlan)# exit
+
+! Konfigurasi Switch Virtual Interface (SVI)
+SW-ACCESS-01(config)# interface vlan 20
+SW-ACCESS-01(config-if)# ip address 192.168.20.2 255.255.255.0
+SW-ACCESS-01(config-if)# ipv6 address fe80::2 link-local
+SW-ACCESS-01(config-if)# ipv6 address 2001:db8:acad:20::2/64
+SW-ACCESS-01(config-if)# no shutdown
+SW-ACCESS-01(config-if)# exit
+
+! Alokasikan port pengguna (Fa0/1 - Fa0/24 dan Gi0/1 - Gi0/2) ke VLAN 20 agar interface SVI UP:
+SW-ACCESS-01(config)# interface range fastethernet 0/1 - 24, gigabitethernet 0/1 - 2
+SW-ACCESS-01(config-if-range)# switchport access vlan 20
+SW-ACCESS-01(config-if-range)# exit
+
+! Konfigurasi Default Gateway untuk persiapan routing luar jaringan:
+SW-ACCESS-01(config)# ip default-gateway 192.168.20.1`
+              }
+            ]
+          },
+          {
+            part: "Part 5: Pengamanan Line Console 0 & Line VTY (Telnet)",
+            desc: "Pemberian kata sandi pada akses fisik console dan pembatasan akses remote terminal virtual.",
+            cli: [
+              {
+                label: "Konfigurasi Jalur Akses Console & VTY",
+                code: `! Pengamanan Port Console Fisik
+SW-ACCESS-01(config)# line console 0
+SW-ACCESS-01(config-line)# password cisco
+SW-ACCESS-01(config-line)# logging synchronous
+SW-ACCESS-01(config-line)# login
+SW-ACCESS-01(config-line)# exit
+
+! Pengamanan Jalur Remote Terminal (VTY Telnet)
+SW-ACCESS-01(config)# line vty 0 15
+SW-ACCESS-01(config-line)# password cisco
+SW-ACCESS-01(config-line)# login
+SW-ACCESS-01(config-line)# exit
+
+SW-ACCESS-01(config)# end
+SW-ACCESS-01# copy running-config startup-config`
+              }
+            ]
+          },
+          {
+            part: "Part 6: Pengaturan IP Host & Pengujian Konektivitas",
+            desc: "Pemberian alamat statis pada PC Admin dan pengujian akses ICMP Ping serta Telnet.",
+            cli: [
+              {
+                label: "Konfigurasi Desktop ADMIN-PC & Command Prompt Test",
+                code: `! Buka ADMIN-PC > Desktop > IP Configuration:
+! - IPv4 Address       : 192.168.20.10
+! - Subnet Mask        : 255.255.255.0
+! - Default Gateway    : 192.168.20.1
+! - IPv6 Address       : 2001:db8:acad:20::10/64
+! - IPv6 Gateway       : fe80::1
+
+! Uji Ping dan Remote Login dari Command Prompt ADMIN-PC:
+C:\\> ping 192.168.20.2
+C:\\> ping 2001:db8:acad:20::2
+C:\\> telnet 192.168.20.2
+Password: cisco
+SW-ACCESS-01> enable
+Password: class
+SW-ACCESS-01# show ip interface brief
+SW-ACCESS-01# exit`
+              }
+            ]
+          },
+          {
+            part: "Part 7: Pengelolaan MAC Address Table (Dinamis & Statis)",
+            desc: "Inspeksi tabel CAM switch, pencatatan MAC address PC, dan konfigurasi Static MAC Address.",
+            cli: [
+              {
+                label: "Inspeksi CAM Table & Konfigurasi Static MAC",
+                code: `! 1. Identifikasi MAC address PC dari Command Prompt:
+C:\\> ipconfig /all
+! (Catat alamat fisik/MAC Address ADMIN-PC, contoh: 0001.43AA.BB22)
+
+! 2. Periksa MAC address yang dipelajari secara dinamis pada switch:
+SW-ACCESS-01# show mac address-table
+SW-ACCESS-01# show mac address-table dynamic
+
+! 3. Tetapkan Static MAC Address pada port Fa0/6 (Gunakan MAC Address ADMIN-PC Anda):
+SW-ACCESS-01# configure terminal
+SW-ACCESS-01(config)# mac address-table static 0001.43aa.bb22 vlan 20 interface fastethernet 0/6
+SW-ACCESS-01(config)# end
+
+! 4. Verifikasi bahwa entri terdaftar bertipe STATIC:
+SW-ACCESS-01# show mac address-table`
+              }
+            ]
+          }
+        ],
+        reflections: [
+          {
+            q: "Mengapa konfigurasi awal switch Cisco harus dilakukan melalui sambungan kabel Console?",
+            a: "Karena switch dalam kondisi default belum memiliki konfigurasi pengalamatan IP pada interface logis dan jalur Line VTY belum dikonfigurasi kata sandi. Komunikasi in-band (Telnet/SSH) belum aktif sehingga jalur fisik out-of-band (Console) menjadi satu-satunya media konfigurasi awal."
+          },
+          {
+            q: "Mengapa perintah 'login' wajib dimasukkan pada konfigurasi Line VTY?",
+            a: "Perintah 'login' mengaktifkan verifikasi otentikasi kata sandi pada sesi terminal virtual. Tanpa perintah ini, sistem Cisco IOS tidak akan memunculkan prompt kata sandi dan secara otomatis memutus koneksi remote masuk demi mencegah akses ilegal."
+          },
+          {
+            q: "Mengapa antarmuka manajemen SVI dipindahkan dari VLAN 1 bawaan ke VLAN khusus (seperti VLAN 20)?",
+            a: "VLAN 1 merupakan default untuk seluruh lalu lintas data pengguna. Memisahkan lalu lintas manajemen ke VLAN khusus memitigasi serangan VLAN Hopping, eksploitasi broadcast, dan melindungi jalur administratif dari sniffing lalu lintas data reguler."
+          },
+          {
+            q: "Apa tujuan menetapkan Static MAC Address pada antarmuka switch?",
+            a: "Static MAC Address mengikat alamat fisik perangkat secara permanen ke port dan VLAN tertentu di tabel CAM switch. Hal ini mencegah entri MAC terhapus oleh batas waktu penuaan (aging time) serta membantu memitigasi serangan MAC Table Flooding."
+          }
+        ],
+        youtubeId: ""
+      },
+      {
         id: "ensa-ospfv2",
         course: "ENSA",
-        code: "1.4.2",
+        code: "0.0.0",
         title: "Single-Area OSPFv2 Configuration",
         badge: "Routing",
         background: "Implementasi OSPFv2 link-state routing protocol pada topologi Enterprise Point-to-Point dan Multiaccess.",
@@ -264,23 +341,9 @@ S1# show ip interface brief`
         reflections: [],
         youtubeId: ""
       },
-       {
-        id: "itn-basic-ip",
-        course: "SRWE",
-        code: "1.1",
-        title: "Basic Switch & End Device Config",
-        badge: "Switching",
-        background: "Materi pondasi mengenai struktur hirarki Cisco IOS dan pengalamatan IP kelas C.",
-        objectives: ["Mengenal mode CLI Cisco", "Menetapkan IP statis pada Windows PC"],
-        topologyImg: "./images/placeholder.png",
-        addressingTable: [],
-        steps: [],
-        reflections: [],
-        youtubeId: ""
-      }
     ];
 
-    let activeLabId = "srwe-1-1-7";
+    let activeLabId = "srwe-basic-switch";
 
     // Toggle Sidebar State
     function toggleSidebar() {
