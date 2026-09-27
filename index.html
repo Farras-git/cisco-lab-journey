@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230284c7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='2' y='2' width='6' height='6' rx='1'/><rect x='16' y='2' width='6' height='6' rx='1'/><rect x='9' y='16' width='6' height='6' rx='1'/><path d='M5 8v3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8'/><path d='M12 12v4'/></svg>">
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -339,6 +340,210 @@ SW-ACCESS-01# show mac address-table`
         addressingTable: [],
         steps: [],
         reflections: [],
+        youtubeId: ""
+      },
+      {
+        id: "srwe-custom-ssh-hardening",
+        course: "SRWE",
+        code: "1.2",
+        title: "Securing Remote Access with SSH & Password Encryption",
+        badge: "Security",
+        background: `Protokol Telnet mentransmisikan seluruh data autentikasi, kredensial administratif, dan sintaks konfigurasi dalam bentuk teks polos (plaintext) tanpa enkripsi, sehingga rentan disadap menggunakan teknik packet sniffing (seperti Man-in-the-Middle). Untuk mengamankan akses administratif jarak jauh (remote management), Cisco IOS mewajibkan migrasi ke Secure Shell (SSHv2). SSH memanfaatkan algoritma kriptografi kunci publik asimetris (Rivest-Shamir-Adleman / RSA) untuk mengenkripsi seluruh muatan sesi komunikasi. Lab ini merancang arsitektur pengamanan switch dari lembar kerja kosong yang mengintegrasikan pengacakan password internal (Type 7), pembuatan pasangan kunci RSA, otentikasi berbasis database pengguna lokal (AAA local database), serta pembatasan jalur terminal virtual (Line VTY) secara eksklusif hanya untuk protokol SSH.`,
+        objectives: [
+          "Membangun topologi mandiri 1 Switch (Catalyst 2960) dan 1 PC Admin dari lembar kerja kosong Packet Tracer.",
+          "Mengonfigurasi pengalamatan Switch Virtual Interface (SVI) pada VLAN 99 sebagai basis jalur remote.",
+          "Menerapkan service password-encryption untuk mengamankan kredensial teks polos pada running-config.",
+          "Mengonfigurasi Fully Qualified Domain Name (FQDN) dan meng-generate kunci enkripsi kriptografis RSA 1024-bit.",
+          "Membuat akun administrator lokal dengan algoritma hashing secret (Type 5 / Scrypt/MD5).",
+          "Mengunci jalur Line VTY 0-15 agar secara ketat hanya mengizinkan lalu lintas SSH (transport input ssh) dan memvalidasi kredensial lokal (login local).",
+          "Memverifikasi penolakan koneksi Telnet dan memvalidasi keberhasilan koneksi terenkripsi via SSH Client."
+        ],
+        topologyImg: "./images/topo-2.png",
+        
+        // POIN 2: DESAIN SKEMA PENGALAMATAN (ADDRESSING TABLE) BARU
+        addressingTable: [
+          { device: "SW-SEC-01", iface: "VLAN 99", ipv4: "192.168.99.2 /24", ipv6: "N/A", gateway: "192.168.99.1" },
+          { device: "SEC-ADMIN-PC", iface: "FastEthernet0", ipv4: "192.168.99.10 /24", ipv6: "N/A", gateway: "192.168.99.1" }
+        ],
+
+        steps: [
+          {
+            // POIN 1 & 3: DAFTAR PERANGKAT, MODUL, & LANGKAH PERAKITAN FISIK
+            part: "Part 1: Inventaris Perangkat & Langkah Perakitan Fisik (Packet Tracer)",
+            desc: "Panduan pemilihan modul perangkat keras dan penyambungan kabel port-ke-port dari lembar kerja kosong.",
+            cli: [
+              {
+                label: "Panduan Perakitan Port-to-Port",
+                code: `! ==================================================================================
+! 1. DAFTAR PERANGKAT & MODUL (BLANK SHEET):
+!    - 1x Switch : Cisco Catalyst 2960-24TT (Ubah nama display menjadi: SW-SEC-01)
+!    - 1x Host   : PC Standar / PC-PT (Ubah nama display menjadi: SEC-ADMIN-PC)
+!
+! 2. LANGKAH PERAKITAN FISIK KABEL (PORT-TO-PORT):
+!    a. Kabel Console (Biru Muda Lengkung):
+!       - Hubungkan dari port RS-232 pada SEC-ADMIN-PC ke port Console pada SW-SEC-01.
+!    b. Kabel Copper Straight-Through (Hitam Garis Lurus):
+!       - Hubungkan dari port FastEthernet0 pada SEC-ADMIN-PC ke port FastEthernet0/1 pada SW-SEC-01.
+! ==================================================================================`
+              }
+            ]
+          },
+          {
+            // POIN 4: KONFIGURASI CLI & VERIFIKASI LANGKAH DEMI LANGKAH
+            part: "Part 2: Inisialisasi Switch, SVI Manajemen VLAN 99 & Konfigurasi Host",
+            desc: "Penetapan hostname, isolasi VLAN 99 untuk manajemen, alokasi port akses, dan pengalamatan IP PC.",
+            cli: [
+              {
+                label: "Konfigurasi SVI Manajemen pada Switch (SW-SEC-01)",
+                code: `Switch> enable
+Switch# configure terminal
+Switch(config)# hostname SW-SEC-01
+SW-SEC-01(config)# no ip domain-lookup
+
+! Pembuatan VLAN Manajemen dan penetapan IP SVI
+SW-SEC-01(config)# vlan 99
+SW-SEC-01(config-vlan)# name Management_VLAN
+SW-SEC-01(config-vlan)# exit
+
+SW-SEC-01(config)# interface vlan 99
+SW-SEC-01(config-if)# ip address 192.168.99.2 255.255.255.0
+SW-SEC-01(config-if)# no shutdown
+SW-SEC-01(config-if)# exit
+
+! Alokasikan antarmuka Fa0/1 ke VLAN 99 agar port dan SVI berstatus Up/Up
+SW-SEC-01(config)# interface fastethernet 0/1
+SW-SEC-01(config-if)# switchport mode access
+SW-SEC-01(config-if)# switchport access vlan 99
+SW-SEC-01(config-if)# exit
+
+SW-SEC-01(config)# ip default-gateway 192.168.99.1`
+              },
+              {
+                label: "Pengalamatan IP Statis pada Host (SEC-ADMIN-PC)",
+                code: `! Buka SEC-ADMIN-PC > Desktop > IP Configuration:
+! - IPv4 Address       : 192.168.99.10
+! - Subnet Mask        : 255.255.255.0
+! - Default Gateway    : 192.168.99.1`
+              }
+            ]
+          },
+          {
+            part: "Part 3: Pengamanan Kata Sandi & Enkripsi Sistem",
+            desc: "Pemberian kata sandi privilage terenkripsi, pengaktifan layanan enkripsi reversibel Type 7, dan banner MOTD.",
+            cli: [
+              {
+                label: "Aktivasi Enkripsi Kata Sandi & Kredensial Global",
+                code: `SW-SEC-01(config)# enable secret CiscoPrivPass99!
+SW-SEC-01(config)# service password-encryption
+SW-SEC-01(config)# banner motd #PERINGATAN RESMI: Akses terbatas hanya untuk personel terotorisasi. Aktivitas sesi direkam!#
+
+! Amankan Port Console Fisik
+SW-SEC-01(config)# line console 0
+SW-SEC-01(config-line)# password ConsoleVault2026!
+SW-SEC-01(config-line)# logging synchronous
+SW-SEC-01(config-line)# login
+SW-SEC-01(config-line)# exit`
+              }
+            ]
+          },
+          {
+            part: "Part 4: Implementasi Kriptografi RSA & Aktivasi Protokol SSH",
+            desc: "Konfigurasi domain IP, pembuatan kunci RSA modulus 1024-bit, dan penetapan akun database lokal.",
+            cli: [
+              {
+                label: "Generate Kunci RSA & Pembuatan User Lokal",
+                code: `! Domain name wajib dikonfigurasi sebagai prasyarat penamaan kunci FQDN RSA
+SW-SEC-01(config)# ip domain-name cyberlab.corp
+
+! Generate kunci enkripsi kriptografis RSA (pilih panjang modulus 1024 bit)
+SW-SEC-01(config)# crypto key generate rsa general-keys modulus 1024
+
+! Opsional namun disarankan: tetapkan versi SSH ke versi 2 yang lebih aman
+SW-SEC-01(config)# ip ssh version 2
+
+! Buat akun pengguna lokal dengan level privilege tertinggi
+SW-SEC-01(config)# username secadmin secret AdminSecure2026!`
+              }
+            ]
+          },
+          {
+            part: "Part 5: Penguncian Jalur VTY (SSH-Only Access)",
+            desc: "Mengonfigurasi terminal virtual untuk memeriksa database lokal dan memblokir seluruh protokol selain SSH.",
+            cli: [
+              {
+                label: "Konfigurasi Jalur Line VTY 0-15",
+                code: `SW-SEC-01(config)# line vty 0 15
+! Hapus kata sandi global VTY lama agar tidak lagi digunakan
+SW-SEC-01(config-line)# no password
+! Wajibkan otentikasi login menggunakan database 'username' lokal switch
+SW-SEC-01(config-line)# login local
+! Batasi protokol masuk: hanya terima paket sesi SSH (Telnet otomatis diblokir)
+SW-SEC-01(config-line)# transport input ssh
+SW-SEC-01(config-line)# exit
+
+SW-SEC-01(config)# end
+SW-SEC-01# copy running-config startup-config`
+              }
+            ]
+          },
+          {
+            part: "Part 6: Verifikasi Keamanan & Pengujian Akses Remote (Telnet vs SSH)",
+            desc: "Uji coba pembuktian pemblokiran protokol Telnet dan login menggunakan SSH Client dari SEC-ADMIN-PC.",
+            cli: [
+              {
+                label: "Command Prompt Uji Coba pada SEC-ADMIN-PC",
+                code: `! 1. Uji konektivitas dasar ICMP:
+C:\\> ping 192.168.99.2
+
+! 2. Uji coba koneksi via Telnet (Hasil HARUS ditolak / Connection Closed by Foreign Host):
+C:\\> telnet 192.168.99.2
+Trying 192.168.99.2 ...Open
+[Connection to 192.168.99.2 closed by foreign host]
+
+! 3. Uji coba login aman via SSH (Format: ssh -l <username> <ip_svi>):
+C:\\> ssh -l secadmin 192.168.99.2
+Open
+Password: AdminSecure2026!
+
+SW-SEC-01> enable
+Password: CiscoPrivPass99!
+SW-SEC-01#`
+              },
+              {
+                label: "Verifikasi Status Kriptografi pada CLI Switch",
+                code: `! Periksa status operasional protokol SSH pada switch:
+SW-SEC-01# show ip ssh
+! (Output menunjukkan: SSH Enabled - version 2.0, Authentication timeout, Authentication retries)
+
+! Periksa sesi koneksi SSH yang sedang aktif:
+SW-SEC-01# show ssh
+! (Output menampilkan koneksi masuk dari IP 192.168.99.10 dengan enkripsi AES/3DES)`
+              }
+            ]
+          }
+        ],
+
+        reflections: [
+          {
+            q: "Mengapa konfigurasi 'ip domain-name' wajib didefinisikan sebelum menjalankan perintah 'crypto key generate rsa'?",
+            a: "Algoritma Cisco IOS memerlukan Fully Qualified Domain Name (FQDN) untuk menamai pasangan kunci enkripsi RSA secara spesifik, yang dibentuk dengan menggabungkan hostname perangkat dan nama domain (misalnya: SW-SEC-01.cyberlab.corp). Jika domain name belum disetel, proses generate kunci RSA akan ditolak oleh sistem IOS."
+          },
+          {
+            q: "Apa fungsi dari perintah 'transport input ssh' dan apa akibatnya terhadap upaya login via Telnet?",
+            a: "Perintah tersebut mengunci antarmuka virtual Line VTY agar hanya mendengarkan dan menerima segmen data dari port protokol SSH (TCP port 22). Segala upaya koneksi masuk berbasis Telnet (TCP port 23) akan langsung di-drop dan ditutup seketika oleh switch (Connection closed by foreign host)."
+          },
+          {
+            q: "Mengapa kita menggunakan kombinasi 'login local' bersamaan dengan perintah 'username ... secret ...'?",
+            a: "Perintah 'login local' mengalihkan mekanisme autentikasi dari kata sandi tunggal bersama (shared line password) ke basis data pengguna internal perangkat. Hal ini memungkinkan diterapkannya akuntabilitas personal (tiap admin memiliki username tersendiri) serta memastikan kredensial disimpan menggunakan algoritma hashing satu arah yang kuat."
+          },
+          {
+            q: "Berapa panjang modulus RSA minimum yang direkomendasikan agar Cisco IOS dapat mengaktifkan protokol SSH Versi 2 (SSHv2)?",
+            a: "Panjang modulus kunci RSA minimum untuk mengaktifkan SSHv2 pada Cisco IOS adalah 768 bit. Namun, standar keamanan modern merekomendasikan panjang modulus minimal 1024 bit atau 2048 bit guna memberikan ketahanan enkripsi yang memadai terhadap serangan brute-force kriptografi."
+          }
+        ],
+
+        // KOLOM INPUT TAUTAN VIDEO YOUTUBE
+        // Masukkan ID video YouTube walkthrough Anda di antara tanda kutip di bawah ini (contoh: youtubeId: "dQw4w9WgXcQ")
         youtubeId: ""
       },
     ];
